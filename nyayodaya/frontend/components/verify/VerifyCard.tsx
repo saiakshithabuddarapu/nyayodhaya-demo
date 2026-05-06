@@ -109,6 +109,14 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
               <h3 className="text-lg font-bold text-slate-900">{caseData.case_number}</h3>
               <StatusBadge status={caseData.status} />
               <RiskBadge risk={caseData.contempt_risk} />
+              {caseData.total_pages && (
+                <span className={cn(
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
+                  caseData.is_fully_read ? "bg-teal-50 text-teal-700 border-teal-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                )}>
+                  {caseData.is_fully_read ? `Full Doc (${caseData.total_pages}pgs)` : `Partial (${caseData.pages_read}/${caseData.total_pages}pgs)`}
+                </span>
+              )}
             </div>
             <p className="text-sm text-slate-500 mt-0.5">{caseData.court} &mdash; Order: {formatDate(caseData.order_date)}</p>
           </div>
@@ -159,6 +167,50 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
                 <blockquote className="mt-1.5 text-xs italic text-slate-500 border-l-2 border-slate-300 pl-2">
                   &ldquo;{caseData.relative_deadline_text}&rdquo;
                 </blockquote>
+              )}
+            </div>
+
+            {/* Connected Matters */}
+            <div className="mb-3">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Connected Matters</div>
+              {mode === 'edit' ? (
+                <Input
+                  type="text"
+                  defaultValue={caseData.connected_matters ?? ''}
+                  onChange={(e) => setEditedFields((f) => ({ ...f, connected_matters: e.target.value }))}
+                  placeholder="e.g. W.P. No. 100655/2019, 100656/2019"
+                />
+              ) : (
+                <div className="text-sm text-slate-700">{caseData.connected_matters ?? 'None'}</div>
+              )}
+            </div>
+
+            {/* Petitioners */}
+            <div className="mb-3">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Petitioners</div>
+              {mode === 'edit' ? (
+                <Input
+                  type="text"
+                  defaultValue={caseData.petitioners?.join(', ') ?? ''}
+                  onChange={(e) => setEditedFields((f) => ({ ...f, petitioners: e.target.value.split(',').map(s => s.trim()) }))}
+                  placeholder="Comma separated names"
+                />
+              ) : (
+                <div className="text-sm text-slate-700">{caseData.petitioners?.join(', ') || '—'}</div>
+              )}
+            </div>
+
+            {/* Appointment Year */}
+            <div className="mb-3">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Appointment Year</div>
+              {mode === 'edit' ? (
+                <Input
+                  type="text"
+                  defaultValue={caseData.appointment_year ?? ''}
+                  onChange={(e) => setEditedFields((f) => ({ ...f, appointment_year: e.target.value }))}
+                />
+              ) : (
+                <div className="text-sm text-slate-700">{caseData.appointment_year ?? '—'}</div>
               )}
             </div>
 
@@ -213,21 +265,25 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
                   label="Case Number"
                   value={caseData.confidence_scores.case_number}
                   sourceText={caseData.source_paragraphs?.case_number}
+                  sourcePage={caseData.source_paragraphs?.case_number_page}
                 />
                 <ConfidenceBar
                   label="Department"
                   value={caseData.confidence_scores.department}
                   sourceText={caseData.source_paragraphs?.department}
+                  sourcePage={caseData.source_paragraphs?.department_page}
                 />
                 <ConfidenceBar
                   label="Deadline"
                   value={caseData.confidence_scores.deadline}
                   sourceText={caseData.source_paragraphs?.deadline}
+                  sourcePage={caseData.source_paragraphs?.deadline_page}
                 />
                 <ConfidenceBar
                   label="Directive"
                   value={caseData.confidence_scores.directive}
                   sourceText={caseData.source_paragraphs?.directive}
+                  sourcePage={caseData.source_paragraphs?.directive_page}
                 />
               </div>
             </div>
@@ -247,6 +303,22 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                 Compliance Action Plan
               </h4>
+              
+              {/* Key Timeline Summary */}
+              <div className="mb-4 bg-slate-50 border border-slate-100 rounded-lg p-2.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Key Timelines (Inferred)</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 text-center">
+                    <div className="text-[9px] text-slate-400 uppercase font-medium mb-0.5">Order Date</div>
+                    <div className="text-xs font-mono font-semibold text-slate-600">{formatDate(caseData.order_date)}</div>
+                  </div>
+                  <div className="text-slate-300">→</div>
+                  <div className="flex-1 text-center">
+                    <div className="text-[9px] text-slate-400 uppercase font-medium mb-0.5">Final Deadline</div>
+                    <div className="text-xs font-mono font-bold text-teal-700">{formatDate(caseData.absolute_deadline)}</div>
+                  </div>
+                </div>
+              </div>
 
               {/* Recommendation */}
               <div className={cn(
@@ -297,6 +369,12 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
               {caseData.action_plan.risk_if_missed && (
                 <div className="p-3 bg-red-50 border border-red-100 rounded text-xs text-red-700">
                   <strong>Risk if missed:</strong> {caseData.action_plan.risk_if_missed}
+                  {caseData.action_plan.source_citations?.risk_if_missed && (
+                    <div className="mt-2 text-[10px] italic border-l-2 border-red-200 pl-2 text-red-600/80">
+                      &ldquo;{caseData.action_plan.source_citations.risk_if_missed.quote}&rdquo;
+                      <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.risk_if_missed.page}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -306,9 +384,62 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
                   <strong>Context:</strong> {caseData.action_plan.context_insights}
                 </div>
               )}
+
+              {/* Consideration for Appeal */}
+              {caseData.action_plan.consideration_for_appeal && (
+                <div className="p-3 bg-amber-50 border border-amber-100 rounded text-xs text-amber-800 mt-2">
+                  <strong>Consideration for Appeal:</strong> {caseData.action_plan.consideration_for_appeal}
+                  {caseData.action_plan.source_citations?.consideration_for_appeal && (
+                    <div className="mt-2 text-[10px] italic border-l-2 border-amber-200 pl-2 text-amber-700/80">
+                      &ldquo;{caseData.action_plan.source_citations.consideration_for_appeal.quote}&rdquo;
+                      <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.consideration_for_appeal.page}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Nature of Action */}
+              {caseData.action_plan.nature_of_action && Object.keys(caseData.action_plan.nature_of_action).length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nature of Action</div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {Object.entries(caseData.action_plan.nature_of_action).map(([key, value]) => (
+                      <div key={key} className="p-2.5 bg-white border border-slate-100 rounded shadow-sm">
+                        <div className="text-[10px] font-bold text-teal-700 uppercase tracking-tight mb-0.5">{key}</div>
+                        <p className="text-xs text-slate-600 leading-relaxed">{value}</p>
+                        {key === 'administrative' && caseData.action_plan.source_citations?.nature_of_action && (
+                          <div className="mt-1.5 text-[9px] italic border-l border-slate-200 pl-1.5 text-slate-400 leading-tight">
+                            &ldquo;{caseData.action_plan.source_citations.nature_of_action.quote}&rdquo;
+                            <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.nature_of_action.page}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
+          
+          {/* Consolidated Evidence Section */}
+          {caseData.action_plan?.source_citations && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                <h5 className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Audit Evidence & PDF Citations</h5>
+              </div>
+              <div className="space-y-2.5">
+                {Object.entries(caseData.action_plan.source_citations).map(([key, cite]) => (
+                  <div key={key} className="text-[10px] text-slate-500 leading-normal">
+                    <span className="font-bold text-slate-400 uppercase mr-1">{key.replace(/_/g, ' ')}:</span>
+                    <span className="italic">&ldquo;{cite.quote}&rdquo;</span>
+                    <span className="ml-1.5 text-teal-600 font-bold bg-teal-50 px-1 rounded">Page {cite.page}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* Feedback notes (always visible) */}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">

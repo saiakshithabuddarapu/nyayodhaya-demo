@@ -2,12 +2,12 @@ import asyncio
 import logging
 from typing import Dict
 
-from services.pdf_parser import parse_pdf, extract_text_for_ai
+from services.pdf_parser import parse_pdf, extract_text_for_ai, annotate_pdf_with_citations
 from services.extractor import extract_from_judgment
 from services.confidence import compute_confidence_scores
 from services.deadline_engine import compute_absolute_deadline
 from services.action_plan import generate_action_plan
-from services.storage import download_pdf, get_similar_cases, save_case_to_db
+from services.storage import download_pdf, get_similar_cases, save_case_to_db, upload_annotated_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,8 @@ async def run_full_pipeline(job_id: str, file_id: str, file_url: str = None) -> 
         # Step 2: Parse PDF
         await update_job(job_id, progress=15, current_step="Parsing document structure")
         parsed = parse_pdf(pdf_bytes)
-        text = extract_text_for_ai(parsed)
+        text_info = extract_text_for_ai(parsed)
+        text = text_info["text"]
 
         if not text.strip():
             raise ValueError(
@@ -43,9 +44,14 @@ async def run_full_pipeline(job_id: str, file_id: str, file_url: str = None) -> 
                 "OCR support not available in this version."
             )
 
-        # Step 3: Extract with Claude
-        await update_job(job_id, progress=30, current_step="Extracting with Claude AI")
+        # Step 3: Extract with AI
+        await update_job(job_id, progress=30, current_step="Extracting with AI")
         extraction = await extract_from_judgment(text, job_id)
+        
+        # Populate coverage info
+        extraction.pages_read = text_info["pages_read"]
+        extraction.total_pages = text_info["total_pages"]
+        extraction.is_fully_read = text_info["is_fully_read"]
 
         # Step 4: Compute confidence scores
         await update_job(job_id, progress=55, current_step="Computing confidence scores")
@@ -87,7 +93,18 @@ async def run_full_pipeline(job_id: str, file_id: str, file_url: str = None) -> 
         await update_job(job_id, progress=85, current_step="Generating action plan")
         action_plan = await generate_action_plan(extraction, similar_cases, job_id)
 
-        # Step 8: Save to database
+        # Step 8: Annotate PDF with citations
+        await update_job(job_id, progress=88, current_step="Generating annotated PDF")
+        try:
+            source_para_dict = extraction.source_paragraphs.model_dump() if extraction.source_paragraphs else {}
+            annotated_pdf = annotate_pdf_with_citations(pdf_bytes, source_para_dict)
+            annotated_url = await upload_annotated_pdf(file_id, annotated_pdf)
+            if annotated_url:
+                file_url = annotated_url # Use annotated version for the case record
+        except Exception as e:
+            logger.warning(f"PDF annotation failed: {e}")
+
+        # Step 9: Save to database
         await update_job(job_id, progress=92, current_step="Saving to database")
         case_id = await save_case_to_db(
             extraction_dict,

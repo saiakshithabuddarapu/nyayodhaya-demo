@@ -14,10 +14,21 @@ Return ONLY valid JSON. No preamble, no markdown.
       "priority": "high or medium or low"
     }}
   ],
+  "nature_of_action": {{
+    "administrative": "Specific administrative steps (e.g., Verify service history, check records)",
+    "legal": "Specific legal steps (e.g., Draft Speaking Order, legal vetting)",
+    "communication": "Specific communication steps (e.g., Serve order via registered post)"
+  }},
+  "consideration_for_appeal": "Detailed assessment of whether an appeal is viable and on what grounds, vs why compliance is the standard path.",
   "context_insights": "2-3 sentences of strategic context — what this case means, any political sensitivity, similar past precedents",
   "comply_recommendation": "comply or appeal",
   "reasoning": "detailed paragraph explaining comply vs appeal decision",
-  "risk_if_missed": "specific consequences — contempt, penalties, public impact"
+  "risk_if_missed": "specific consequences — contempt, penalties, public impact",
+  "source_citations": {{
+    "nature_of_action": {{ "quote": "...", "page": 1 }},
+    "consideration_for_appeal": {{ "quote": "...", "page": 1 }},
+    "risk_if_missed": {{ "quote": "...", "page": 1 }}
+  }}
 }}
 
 Extraction result:

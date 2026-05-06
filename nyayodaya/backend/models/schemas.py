@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Any, Union
 from datetime import date
 
 
@@ -45,9 +45,13 @@ class ConfidenceScores(BaseModel):
 
 class SourceParagraphs(BaseModel):
     case_number: Optional[str] = None
+    case_number_page: Optional[Union[int, str]] = None
     department: Optional[str] = None
+    department_page: Optional[Union[int, str]] = None
     directive: Optional[str] = None
+    directive_page: Optional[Union[int, str]] = None
     deadline: Optional[str] = None
+    deadline_page: Optional[Union[int, str]] = None
 
 
 class ConfidenceIndicators(BaseModel):
@@ -62,6 +66,9 @@ class ExtractionResult(BaseModel):
     court: str
     order_date: str
     respondent_department: str
+    connected_matters: Optional[str] = None
+    petitioners: list[str] = []
+    appointment_year: Optional[str] = None
     key_directives: list[str]
     relative_deadline_text: str
     absolute_deadline: Optional[str] = None
@@ -72,6 +79,9 @@ class ExtractionResult(BaseModel):
     confidence_scores: Optional[ConfidenceScores] = None
     source_paragraphs: Optional[SourceParagraphs] = None
     confidence_indicators: Optional[ConfidenceIndicators] = None
+    pages_read: int = 0
+    total_pages: int = 0
+    is_fully_read: bool = True
 
 
 class ActionPlanItem(BaseModel):
@@ -88,6 +98,9 @@ class ActionPlan(BaseModel):
     comply_recommendation: str
     reasoning: str
     risk_if_missed: str
+    nature_of_action: Optional[dict[str, str]] = None
+    consideration_for_appeal: Optional[str] = None
+    source_citations: Optional[dict[str, dict[str, Any]]] = None
 
 
 class ProcessJudgmentRequest(BaseModel):

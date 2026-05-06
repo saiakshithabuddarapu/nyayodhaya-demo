@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -12,18 +12,40 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    console.log('🌐 Supabase Config Check:', {
+      hasUrl: !!supabaseUrl,
+      hasAnonKey: !!supabaseAnonKey,
+      urlPrefix: supabaseUrl?.substring(0, 15) + '...'
+    })
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    console.log('🔑 Attempting login for:', email)
+    
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (authError) {
-      setError(authError.message)
+      if (authError) {
+        console.error('❌ Supabase Auth Error:', authError)
+        setError(authError.message)
+        setLoading(false)
+      } else {
+        console.log('✅ Login successful!', data.user?.id)
+        console.log('🚀 Redirecting to /dashboard...')
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      console.error('💥 Unexpected Login Exception:', err)
+      setError('An unexpected error occurred during login.')
       setLoading(false)
-    } else {
-      router.push('/dashboard')
     }
   }
 

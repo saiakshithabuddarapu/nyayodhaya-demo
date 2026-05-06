@@ -6,9 +6,10 @@ interface ConfidenceBarProps {
   label: string
   value: number
   sourceText?: string
+  sourcePage?: number
 }
 
-export function ConfidenceBar({ label, value, sourceText }: ConfidenceBarProps) {
+export function ConfidenceBar({ label, value, sourceText, sourcePage }: ConfidenceBarProps) {
   const rounded = Math.round(value)
   const color =
     rounded >= 80 ? 'bg-green-500'
@@ -41,9 +42,16 @@ export function ConfidenceBar({ label, value, sourceText }: ConfidenceBarProps) 
         <p className={cn('text-xs', textColor)}>{levelLabel}</p>
       </div>
       {sourceText && (
-        <blockquote className="mt-1.5 text-xs text-slate-500 bg-slate-50 border-l-2 border-slate-300 pl-2 py-1 italic rounded-sm">
-          &ldquo;{sourceText.length > 200 ? sourceText.slice(0, 200) + '…' : sourceText}&rdquo;
-        </blockquote>
+        <div className="mt-1.5 bg-slate-50 border-l-2 border-slate-300 rounded-sm overflow-hidden">
+          {sourcePage && (
+            <div className="px-2 py-0.5 bg-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              Source: Page {sourcePage}
+            </div>
+          )}
+          <blockquote className="px-2 py-1 text-xs text-slate-500 italic">
+            &ldquo;{sourceText.length > 200 ? sourceText.slice(0, 200) + '…' : sourceText}&rdquo;
+          </blockquote>
+        </div>
       )}
     </div>
   )

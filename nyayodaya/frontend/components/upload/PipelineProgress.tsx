@@ -21,9 +21,9 @@ interface Step {
 const STEPS: Step[] = [
   { label: 'Downloading PDF from storage',   sublabel: 'Supabase Storage',           minProgress: 5  },
   { label: 'Parsing document structure',      sublabel: 'PyMuPDF',                    minProgress: 15 },
-  { label: 'Extracting with Claude AI',       sublabel: 'claude-sonnet-4-5',          minProgress: 30 },
+  { label: 'Extracting with Gemini AI',       sublabel: 'gemini-2.5-flash',           minProgress: 30 },
   { label: 'Computing confidence scores',     sublabel: 'Multi-signal validation',    minProgress: 55 },
-  { label: 'Generating action plan',          sublabel: 'RAG + Claude',               minProgress: 75 },
+  { label: 'Generating action plan',          sublabel: 'Strategic Intelligence',     minProgress: 75 },
   { label: 'Queuing for verification',        sublabel: 'Human-in-the-loop',          minProgress: 92 },
 ]
 

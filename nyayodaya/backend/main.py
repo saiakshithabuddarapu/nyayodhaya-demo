@@ -31,11 +31,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"✗ Supabase connection failed: {e}")
 
-    # Check Anthropic
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        logger.info("✓ Anthropic API key present")
+    # Check Gemini
+    if os.environ.get("GOOGLE_API_KEY"):
+        logger.info("✓ Google API key present")
     else:
-        logger.warning("✗ ANTHROPIC_API_KEY not set — extraction will fail")
+        logger.warning("✗ GOOGLE_API_KEY not set — extraction will fail")
 
     # Check Langfuse (optional)
     if os.environ.get("LANGFUSE_PUBLIC_KEY"):

@@ -7,25 +7,32 @@ Extract every field with precision. For deadlines, find the EXACT language used 
 Return ONLY a valid JSON object. No preamble, no explanation, no markdown code blocks. Raw JSON only.
 
 {{
-  "case_number": "exact case number (e.g. WP/14829/2024)",
-  "court": "full court name",
+  "case_number": "exact primary case number (e.g. WP/14829/2024)",
+  "connected_matters": "list any other WP numbers mentioned as connected or heard together, else null",
+  "court": "full court name and bench",
   "order_date": "YYYY-MM-DD",
-  "respondent_department": "exact department name from judgment",
+  "respondent_department": "exact department name from judgment (e.g. Department of Social Welfare)",
+  "petitioners": ["List the specific names of the main petitioners mentioned"],
+  "appointment_year": "The year the petitioners were appointed (if mentioned, e.g., 2005)",
   "key_directives": [
     "first specific action ordered by court",
     "second specific action if any"
   ],
-  "relative_deadline_text": "exact deadline phrase from judgment",
+  "relative_deadline_text": "exact deadline phrase from judgment (e.g., 'within 12 weeks')",
   "absolute_deadline": "YYYY-MM-DD if you can compute it, else null",
   "comply_recommendation": "comply or appeal",
   "comply_reasoning": "1-2 sentence reasoning",
-  "responsible_officer": "officer designation if named, else null",
+  "responsible_officer": "officer designation if named (e.g., Principal Secretary), else null",
   "contempt_risk": "high if contempt explicitly mentioned, medium if implied, low otherwise",
   "source_paragraphs": {{
-    "case_number": "exact text from judgment where case number appears",
+    "case_number": "exact text from judgment where case number and connected matters appear",
+    "case_number_page": "page number where case number appears",
     "department": "exact text naming the respondent department",
+    "department_page": "page number where department name appears",
     "directive": "exact operative order paragraph",
-    "deadline": "exact text containing the deadline"
+    "directive_page": "page number where directive appears",
+    "deadline": "exact text containing the deadline",
+    "deadline_page": "page number where deadline appears"
   }},
   "confidence_indicators": {{
     "case_number_explicit": true,

@@ -28,9 +28,13 @@ export interface ConfidenceScores {
 
 export interface SourceParagraphs {
   case_number?: string
+  case_number_page?: number
   department?: string
+  department_page?: number
   directive?: string
+  directive_page?: number
   deadline?: string
+  deadline_page?: number
 }
 
 export interface ActionPlanItem {
@@ -47,6 +51,9 @@ export interface ActionPlan {
   comply_recommendation: ComplyRecommendation
   reasoning: string
   risk_if_missed: string
+  nature_of_action?: Record<string, string>
+  consideration_for_appeal?: string
+  source_citations?: Record<string, { quote: string; page: number }>
 }
 
 export interface Case {
@@ -57,6 +64,9 @@ export interface Case {
   judgment_pdf_url?: string
   respondent_department?: Department
   respondent_department_id?: string
+  connected_matters?: string
+  petitioners?: string[]
+  appointment_year?: string
   key_directives: string[]
   absolute_deadline?: string
   relative_deadline_text?: string
@@ -68,6 +78,9 @@ export interface Case {
   source_paragraphs?: SourceParagraphs
   status: CaseStatus
   action_plan?: ActionPlan
+  pages_read?: number
+  total_pages?: number
+  is_fully_read?: boolean
   created_at: string
   updated_at?: string
 }

@@ -1,13 +1,18 @@
 import json
 import logging
 import os
-from anthropic import Anthropic
+import google.generativeai as genai
 from models.schemas import ExtractionResult, ActionPlan, ActionPlanItem
 from prompts.action_plan import ACTION_PLAN_PROMPT
 
 logger = logging.getLogger(__name__)
 
-client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# Configure Gemini
+genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash",
+    generation_config={"response_mime_type": "application/json"}
+)
 
 
 def _get_langfuse():
@@ -21,30 +26,13 @@ def _get_langfuse():
         return None
 
 
-def _parse_action_plan_response(content: str) -> dict:
-    """Parse JSON from Claude response, stripping any markdown fences."""
-    content = content.strip()
-
-    if content.startswith("```"):
-        lines = content.split("\n")
-        start = 1
-        end = len(lines)
-        for i in range(len(lines) - 1, 0, -1):
-            if lines[i].strip().startswith("```"):
-                end = i
-                break
-        content = "\n".join(lines[start:end])
-
-    return json.loads(content)
-
-
 async def generate_action_plan(
     extraction: ExtractionResult,
     similar_cases: list,
     job_id: str,
 ) -> ActionPlan:
     """
-    Second Claude call to generate a compliance action plan.
+    Second Gemini call to generate a compliance action plan.
     Uses extraction result and similar past cases as context.
     """
     langfuse = _get_langfuse()
@@ -62,6 +50,8 @@ async def generate_action_plan(
     extraction_json = extraction.model_dump_json(indent=2)
     similar_cases_json = json.dumps(similar_cases[:3], indent=2) if similar_cases else "[]"
 
+    logger.info(f"🤖 [PLANNER] Generating compliance steps for Case: {extraction.case_number}")
+    
     prompt = ACTION_PLAN_PROMPT.format(
         extraction_json=extraction_json,
         similar_cases=similar_cases_json,
@@ -72,20 +62,17 @@ async def generate_action_plan(
         try:
             generation = trace.generation(
                 name="generate_action_plan",
-                model="claude-sonnet-4-5",
+                model="gemini-2.5-flash",
                 input=prompt,
             )
         except Exception:
             pass
 
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=3072,
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        raw_content = response.content[0].text
+        # Gemini call
+        response = model.generate_content(prompt)
+        
+        raw_content = response.text
 
         if generation:
             try:
@@ -94,28 +81,10 @@ async def generate_action_plan(
                 pass
 
         try:
-            data = _parse_action_plan_response(raw_content)
+            data = json.loads(raw_content)
         except json.JSONDecodeError as e:
-            logger.warning(f"Action plan JSON parse failed: {e}. Retrying.")
-
-            retry_response = client.messages.create(
-                model="claude-sonnet-4-5",
-                max_tokens=3072,
-                messages=[
-                    {"role": "user", "content": prompt},
-                    {"role": "assistant", "content": raw_content},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Your previous response was not valid JSON. "
-                            "Return ONLY the raw JSON object with no preamble, "
-                            "no markdown. Start with { and end with }."
-                        ),
-                    },
-                ],
-            )
-
-            data = _parse_action_plan_response(retry_response.content[0].text)
+            logger.error(f"Action plan JSON parse failed: {e}. Output: {raw_content[:200]}")
+            raise ValueError("Gemini returned invalid JSON for action plan")
 
         # Validate and coerce checklist items
         checklist_raw = data.get("checklist_items", [])
@@ -140,6 +109,9 @@ async def generate_action_plan(
             comply_recommendation=data.get("comply_recommendation", "comply"),
             reasoning=data.get("reasoning", ""),
             risk_if_missed=data.get("risk_if_missed", ""),
+            nature_of_action=data.get("nature_of_action"),
+            consideration_for_appeal=data.get("consideration_for_appeal"),
+            source_citations=data.get("source_citations"),
         )
 
         if langfuse:

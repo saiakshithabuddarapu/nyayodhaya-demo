@@ -16,9 +16,10 @@ def parse_pdf(pdf_bytes: bytes) -> dict:
     page_texts: list[str] = []
     total_chars = 0
 
-    for page in doc:
+    for i, page in enumerate(doc):
         text = page.get_text("text")
-        page_texts.append(text)
+        # Add page markers to help LLM track location
+        page_texts.append(f"--- PAGE {i+1} ---\n{text}")
         total_chars += len(text)
 
     num_pages = len(doc)
@@ -54,22 +55,93 @@ def parse_pdf(pdf_bytes: bytes) -> dict:
     }
 
 
-def extract_text_for_ai(parsed: dict, max_chars: int = 180_000) -> str:
+def extract_text_for_ai(parsed: dict, max_chars: int = 180_000) -> dict:
     """
     Prepare extracted text for AI consumption.
     Truncates to max_chars with a notice if needed.
+    Returns dict with 'text', 'is_fully_read', 'pages_read', 'total_pages'.
     """
     text = parsed["text"]
+    total_pages = parsed["pages"]
+    is_fully_read = True
+    pages_read = total_pages
 
     if len(text) > max_chars:
+        is_fully_read = False
         truncation_notice = (
             f"\n\n[NOTE: Document truncated from {len(text)} to {max_chars} characters "
             "due to length limits. The operative order paragraphs are typically near the end.]\n\n"
         )
         # Keep the end of the document (where operative orders usually appear)
         # and some from the beginning (case header)
-        head = text[:max_chars // 3]
-        tail = text[-(max_chars * 2 // 3):]
+        head_chars = max_chars // 3
+        tail_chars = max_chars * 2 // 3
+        
+        head = text[:head_chars]
+        tail = text[-tail_chars:]
         text = head + truncation_notice + tail
 
-    return text
+        # Estimate pages read (very rough)
+        # In a better implementation, we'd check which PAGE markers are still in the text
+        pages_read = text.count("--- PAGE ")
+
+    return {
+        "text": text,
+        "is_fully_read": is_fully_read,
+        "pages_read": pages_read,
+        "total_pages": total_pages
+    }
+
+
+def annotate_pdf_with_citations(pdf_bytes: bytes, source_paragraphs: dict) -> bytes:
+    """
+    Add visible highlights and citations to the PDF based on extracted source paragraphs.
+    """
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    
+    # Mapping of field names to display names and colors
+    fields = {
+        "case_number": ("Case Number", (0, 0, 1)), # Blue
+        "department": ("Respondent", (0, 0.5, 0)), # Green
+        "directive": ("Directive", (1, 0, 0)), # Red
+        "deadline": ("Deadline", (1, 0.5, 0)), # Orange
+    }
+
+    for field, (label, color) in fields.items():
+        text_to_find = source_paragraphs.get(field)
+        page_idx = source_paragraphs.get(f"{field}_page")
+        
+        if not text_to_find:
+            continue
+            
+        # If we have a page number, search only that page (1-indexed to 0-indexed)
+        search_pages = [doc[page_idx - 1]] if page_idx and 0 < page_idx <= len(doc) else doc
+        
+        found = False
+        for page in search_pages:
+            # Search for the text
+            # We use a subset of the text if it's too long to improve match reliability
+            search_query = text_to_find[:100] if len(text_to_find) > 100 else text_to_find
+            inst = page.search_for(search_query)
+            
+            for rect in inst:
+                # Add highlight
+                annot = page.add_highlight_annot(rect)
+                annot.set_colors(stroke=color)
+                annot.update()
+                
+                # Add a text label near the highlight
+                page.insert_text(
+                    fitz.Point(rect.x1 + 5, rect.y0),
+                    f"← {label}",
+                    fontsize=8,
+                    color=color
+                )
+                found = True
+            
+            if found:
+                break
+
+    output_bytes = doc.write()
+    doc.close()
+    return output_bytes

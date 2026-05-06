@@ -46,6 +46,18 @@ export async function GET(req: NextRequest) {
       const { action_plans, ...rest } = c
       return {
         ...rest,
+        // Pull missing fields from extraction_raw
+        petitioners: c.petitioners && c.petitioners.length > 0 ? c.petitioners : (c.extraction_raw?.petitioners ?? []),
+        appointment_year: c.appointment_year || c.extraction_raw?.appointment_year || null,
+        connected_matters: c.connected_matters || c.extraction_raw?.connected_matters || null,
+        
+        // Fallback for respondent department if linking failed
+        respondent_department: c.respondent_department || (c.extraction_raw?.respondent_department ? { name: c.extraction_raw.respondent_department } : null),
+        
+        pages_read: c.extraction_raw?.pages_read ?? 0,
+        total_pages: c.extraction_raw?.total_pages ?? 0,
+        is_fully_read: c.extraction_raw?.is_fully_read ?? true,
+        source_paragraphs: c.extraction_raw?.source_paragraphs ?? null,
         confidence_scores: c.confidence_case_number != null
           ? {
               case_number: c.confidence_case_number,
@@ -61,7 +73,10 @@ export async function GET(req: NextRequest) {
               context_insights: actionPlan.context_insights || '',
               comply_recommendation: rest.comply_recommendation || 'comply',
               reasoning: rest.comply_reasoning || '',
-              risk_if_missed: '',
+              risk_if_missed: actionPlan.risk_if_missed || '',
+              nature_of_action: actionPlan.nature_of_action || {},
+              consideration_for_appeal: actionPlan.consideration_for_appeal || '',
+              source_citations: actionPlan.source_citations || {},
             }
           : null,
       }

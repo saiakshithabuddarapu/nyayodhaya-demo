@@ -1,13 +1,18 @@
 import json
 import logging
 import os
-from anthropic import Anthropic
+import google.generativeai as genai
 from models.schemas import ExtractionResult, ConfidenceScores, SourceParagraphs, ConfidenceIndicators
 from prompts.extraction import EXTRACTION_PROMPT
 
 logger = logging.getLogger(__name__)
 
-client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# Configure Gemini
+genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash",
+    generation_config={"response_mime_type": "application/json"}
+)
 
 
 def _get_langfuse():
@@ -21,31 +26,13 @@ def _get_langfuse():
         return None
 
 
-def _parse_extraction_response(content: str) -> dict:
-    """Parse JSON from Claude response, stripping any markdown fences."""
-    content = content.strip()
-
-    if content.startswith("```"):
-        lines = content.split("\n")
-        # Remove opening fence (```json or ```)
-        start = 1
-        end = len(lines)
-        for i in range(len(lines) - 1, 0, -1):
-            if lines[i].strip().startswith("```"):
-                end = i
-                break
-        content = "\n".join(lines[start:end])
-
-    return json.loads(content)
-
-
 async def extract_from_judgment(
     text: str,
     job_id: str,
 ) -> ExtractionResult:
     """
-    Call Claude with EXTRACTION_PROMPT to extract structured data from judgment text.
-    Retries once on JSON parse failure with explicit JSON instruction.
+    Call Gemini with EXTRACTION_PROMPT to extract structured data from judgment text.
+    Uses Gemini's native JSON mode for high reliability.
     """
     langfuse = _get_langfuse()
     trace = None
@@ -67,20 +54,22 @@ async def extract_from_judgment(
         try:
             generation = trace.generation(
                 name="extract_from_judgment",
-                model="claude-sonnet-4-5",
+                model="gemini-2.5-flash",
                 input=prompt,
             )
         except Exception:
             pass
 
+    logger.info(f"🤖 [EXTRACTOR] Starting Gemini 2.5 Flash extraction for {len(text)} chars...")
+    
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
         )
-
-        raw_content = response.content[0].text
+        
+        raw_content = response.text
+        print(f"\n--- [AGENT: EXTRACTOR RAW RESPONSE] ---\n{raw_content}\n--------------------------------------\n")
 
         if generation:
             try:
@@ -89,36 +78,26 @@ async def extract_from_judgment(
                 pass
 
         try:
-            data = _parse_extraction_response(raw_content)
+            data = json.loads(raw_content)
         except json.JSONDecodeError as e:
-            logger.warning(f"First JSON parse failed: {e}. Retrying with explicit JSON instruction.")
+            logger.error(f"JSON parse failed for Gemini response: {e}")
+            raise ValueError(f"Gemini returned invalid JSON: {raw_content[:200]}")
 
-            retry_response = client.messages.create(
-                model="claude-sonnet-4-5",
-                max_tokens=4096,
-                messages=[
-                    {"role": "user", "content": prompt},
-                    {"role": "assistant", "content": raw_content},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Your previous response was not valid JSON. "
-                            "Return ONLY the raw JSON object with no preamble, "
-                            "no explanation, and no markdown code blocks. "
-                            "Start your response with { and end with }."
-                        ),
-                    },
-                ],
-            )
+        # CLEANUP: Gemini 2.5 sometimes returns lists for single-string fields
+        for field in ["respondent_department", "responsible_officer", "court", "case_number", "order_date", "relative_deadline_text", "connected_matters"]:
+            if field in data and isinstance(data[field], list):
+                data[field] = ", ".join(str(x) for x in data[field])
 
-            retry_content = retry_response.content[0].text
-            try:
-                data = _parse_extraction_response(retry_content)
-            except json.JSONDecodeError:
-                raise ValueError(
-                    "Claude returned invalid JSON on both attempts. "
-                    f"Response snippet: {retry_content[:200]}"
-                )
+        # Robust page number parsing
+        if "source_paragraphs" in data and isinstance(data["source_paragraphs"], dict):
+            sp = data["source_paragraphs"]
+            for page_field in ["case_number_page", "department_page", "directive_page", "deadline_page"]:
+                if page_field in sp and sp[page_field]:
+                    val = sp[page_field]
+                    if isinstance(val, str):
+                        import re
+                        match = re.search(r'\d+', val)
+                        sp[page_field] = int(match.group()) if match else None
 
         # Build nested objects
         raw_confidence = data.pop("confidence_indicators", {}) or {}
@@ -138,8 +117,6 @@ async def extract_from_judgment(
 
         return extraction
 
-    except ValueError:
-        raise
     except Exception as e:
         logger.error(f"Extraction failed for job {job_id}: {e}")
         raise ValueError(f"Extraction failed: {str(e)}")

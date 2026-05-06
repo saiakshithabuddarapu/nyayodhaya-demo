@@ -5,6 +5,38 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+async def upload_annotated_pdf(file_id: str, pdf_bytes: bytes) -> str:
+    """
+    Upload annotated PDF bytes to Supabase Storage.
+    Returns the public URL of the uploaded file.
+    """
+    from db.supabase_client import get_supabase_client
+
+    bucket = os.environ.get("SUPABASE_STORAGE_BUCKET", "judgments")
+    client = get_supabase_client()
+
+    # Append _annotated to the filename before the extension
+    base, ext = os.path.splitext(file_id)
+    annotated_file_id = f"{base}_annotated{ext}"
+
+    try:
+        # Upload the file (upsert=True to overwrite if exists)
+        client.storage.from_(bucket).upload(
+            path=annotated_file_id,
+            file=pdf_bytes,
+            file_options={"content-type": "application/pdf", "upsert": "true"}
+        )
+        
+        # Get public URL
+        url_response = client.storage.from_(bucket).get_public_url(annotated_file_id)
+        logger.info(f"Uploaded annotated PDF to: {annotated_file_id}")
+        return url_response
+    except Exception as e:
+        logger.error(f"Failed to upload annotated PDF {annotated_file_id}: {e}")
+        # Fallback to returning None or raising, but we don't want to crash the pipeline
+        return None
+
+
 async def download_pdf(file_id: str) -> bytes:
     """
     Download PDF bytes from Supabase Storage.
@@ -38,6 +70,7 @@ async def get_similar_cases(
 
     try:
         # Find department ID by name or partial match
+        print(f"🔍 [DB: SIMILARITY] Searching for similar cases in department: {department}")
         dept_response = (
             client.table("departments")
             .select("id, name, code")
@@ -107,6 +140,27 @@ async def save_case_to_db(
 
     now = datetime.now(timezone.utc).isoformat()
 
+    # Check for existing case and its status
+    print(f"🔍 [DB: CHECK] Looking for existing case: {extraction.get('case_number')}")
+    existing_case = (
+        client.table("cases")
+        .select("id, status")
+        .eq("case_number", extraction.get("case_number", "UNKNOWN"))
+        .execute()
+    )
+
+    if existing_case.data:
+        current_status = existing_case.data[0]["status"]
+        print(f"⚠️ [DB: CONFLICT] Found existing case with status: {current_status}")
+        if current_status not in ["pending_verification", "processing", "rejected", "failed"]:
+            raise ValueError(
+                f"Case {extraction.get('case_number')} is already {current_status}. "
+                "Re-uploading verified cases is not allowed to preserve audit integrity."
+            )
+        print(f"✅ [DB: RESOLVE] Overwriting pending case...")
+    else:
+        print(f"✨ [DB: NEW] No existing case found. Creating new record.")
+
     case_data = {
         "case_number": extraction.get("case_number", "UNKNOWN"),
         "court": extraction.get("court", "Karnataka High Court"),
@@ -131,7 +185,11 @@ async def save_case_to_db(
         "extraction_raw": extraction,
     }
 
-    case_response = client.table("cases").insert(case_data).execute()
+    case_response = (
+        client.table("cases")
+        .upsert(case_data, on_conflict="case_number")
+        .execute()
+    )
 
     if not case_response.data:
         raise ValueError("Failed to insert case into database")
@@ -143,10 +201,12 @@ async def save_case_to_db(
         "case_id": case_id,
         "checklist_items": action_plan.get("checklist_items", []),
         "context_insights": action_plan.get("context_insights", ""),
+        "nature_of_action": action_plan.get("nature_of_action", {}),
+        "consideration_for_appeal": action_plan.get("consideration_for_appeal", ""),
         "similar_cases": [],
     }
 
-    client.table("action_plans").insert(action_plan_data).execute()
+    client.table("action_plans").upsert(action_plan_data, on_conflict="case_id").execute()
 
     logger.info(f"Saved case {case_id} with job_id {job_id}")
     return case_id
