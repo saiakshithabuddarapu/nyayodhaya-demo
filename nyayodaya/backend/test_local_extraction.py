@@ -37,7 +37,7 @@ async def test_local_pdf(file_path: str):
         parsed = parse_pdf(pdf_bytes)
         text = extract_text_for_ai(parsed)
         
-        if not text.strip():
+        if not text["text"].strip():
             logger.error("No text extracted from PDF. Check if it is a scanned image.")
             return
 
@@ -45,7 +45,7 @@ async def test_local_pdf(file_path: str):
         
         # 3. Extract with Gemini 2.5 Flash
         logger.info("⏳ Step 2: Running Gemini 2.5 Flash Extraction...")
-        extraction = await extract_from_judgment(text, "test_job_manual")
+        extraction = await extract_from_judgment(text["text"], "test_job_manual")
         
         print("\n" + "="*50)
         # 4. Generate Action Plan
@@ -87,6 +87,6 @@ async def test_local_pdf(file_path: str):
 
 if __name__ == "__main__":
     # Path to your sample data
-    TEST_FILE = r"c:\ai for bharat\nyayodhaya-demo\sample_data\KAHC020004802019_1_2025-12-01.pdf"
+    TEST_FILE = r"c:\nyayodaya-prototype\sample_pdfs_orginal_karnataka_highcourt_2025_dec\KAHC010009932020_1_2025-12-16.pdf"
     
     asyncio.run(test_local_pdf(TEST_FILE))

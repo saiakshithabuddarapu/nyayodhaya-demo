@@ -72,12 +72,12 @@ class ExtractionResult(BaseModel):
     petitioners: list[str] = []
     appointment_year: Optional[str] = None
     key_directives: list[str]
-    relative_deadline_text: str
+    relative_deadline_text: Optional[str] = None
     absolute_deadline: Optional[str] = None
-    comply_recommendation: str
-    comply_reasoning: str
+    comply_recommendation: Optional[str] = "unclear"
+    comply_reasoning: Optional[str] = None
     responsible_officer: Optional[str] = None
-    contempt_risk: str
+    contempt_risk: Optional[str] = "low"
     confidence_scores: Optional[ConfidenceScores] = None
     source_paragraphs: Optional[SourceParagraphs] = None
     confidence_indicators: Optional[ConfidenceIndicators] = None
