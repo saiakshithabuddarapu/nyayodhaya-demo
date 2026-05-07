@@ -1,0 +1,9 @@
+{
+  "/api/verify/route": "app/api/verify/route.js",
+  "/api/cases/route": "app/api/cases/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/upload/page": "app/(dashboard)/upload/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/verify/page": "app/(dashboard)/verify/page.js",
+  "/(dashboard)/cases/page": "app/(dashboard)/cases/page.js"
+}

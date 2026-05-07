@@ -185,18 +185,24 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
               )}
             </div>
 
-            {/* Petitioners */}
+            {/* Claimants (formerly Petitioners) */}
             <div className="mb-3">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Petitioners</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">Claimants / Petitioners</div>
               {mode === 'edit' ? (
                 <Input
                   type="text"
-                  defaultValue={caseData.petitioners?.join(', ') ?? ''}
-                  onChange={(e) => setEditedFields((f) => ({ ...f, petitioners: e.target.value.split(',').map(s => s.trim()) }))}
+                  defaultValue={caseData.claimants?.join(', ') || caseData.petitioners?.join(', ') || ''}
+                  onChange={(e) => setEditedFields((f) => ({ ...f, claimants: e.target.value.split(',').map(s => s.trim()) }))}
                   placeholder="Comma separated names"
                 />
               ) : (
-                <div className="text-sm text-slate-700">{caseData.petitioners?.join(', ') || '—'}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(caseData.claimants?.length ? caseData.claimants : caseData.petitioners)?.map((p, i) => (
+                    <span key={i} className="text-xs bg-slate-50 text-slate-700 px-2 py-1 rounded border border-slate-100 font-medium">
+                      {p}
+                    </span>
+                  )) || <span className="text-sm text-slate-400">Not specified</span>}
+                </div>
               )}
             </div>
 
@@ -214,17 +220,32 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
               )}
             </div>
 
-            {/* Department */}
+            {/* Respondents */}
             <div className="mb-3">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Respondent Department</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">Respondents</div>
               {mode === 'edit' ? (
                 <Input
                   type="text"
-                  defaultValue={caseData.respondent_department?.name ?? ''}
-                  onChange={(e) => setEditedFields((f) => ({ ...f, responsible_officer: e.target.value }))}
+                  defaultValue={caseData.respondents?.join(', ') || caseData.respondent_department?.name || ''}
+                  onChange={(e) => setEditedFields((f) => ({ ...f, respondents: e.target.value.split(',').map(s => s.trim()) }))}
+                  placeholder="Comma separated respondents"
                 />
               ) : (
-                <div className="font-medium text-slate-900">{caseData.respondent_department?.name ?? '—'}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {caseData.respondents?.length ? (
+                    caseData.respondents.map((r, i) => (
+                      <span key={i} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100 font-medium">
+                        {r}
+                      </span>
+                    ))
+                  ) : caseData.respondent_department?.name ? (
+                    <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100 font-medium">
+                      {caseData.respondent_department.name}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-400">Not specified</span>
+                  )}
+                </div>
               )}
             </div>
 
@@ -298,10 +319,12 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
 
         {/* RIGHT: action plan + actions */}
         <div className="p-5 space-y-5">
-          {caseData.action_plan && (
-            <div>
-              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                Compliance Action Plan
+          {/* Action Plan Section */}
+          {(caseData.action_plan || caseData.comply_recommendation) && (
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                Compliance Strategy & Analysis
               </h4>
               
               {/* Key Timeline Summary */}
@@ -320,101 +343,157 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
                 </div>
               </div>
 
-              {/* Recommendation */}
+              {/* Recommendation Card */}
               <div className={cn(
-                'rounded p-3 mb-3 border',
-                caseData.action_plan.comply_recommendation === 'comply'
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-amber-50 border-amber-200'
+                'rounded-xl p-4 border-2 relative overflow-hidden transition-all shadow-sm',
+                (caseData.action_plan?.comply_recommendation || caseData.comply_recommendation) === 'comply'
+                  ? 'bg-emerald-50/40 border-emerald-100'
+                  : 'bg-rose-50/40 border-rose-100'
               )}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={cn(
-                    'text-xs font-bold px-2 py-0.5 rounded uppercase',
-                    caseData.action_plan.comply_recommendation === 'comply'
-                      ? 'bg-green-700 text-white'
-                      : 'bg-amber-700 text-white'
-                  )}>
-                    {caseData.action_plan.comply_recommendation}
-                  </span>
-                  <span className="text-xs font-medium text-slate-600">recommended</span>
+                <div className="absolute -top-2 -right-2 p-1 opacity-[0.03] pointer-events-none select-none">
+                   <div className="text-6xl font-black uppercase rotate-12">
+                     {caseData.action_plan?.comply_recommendation || caseData.comply_recommendation || 'PENDING'}
+                   </div>
                 </div>
-                <p className="text-xs text-slate-700">{caseData.action_plan.reasoning}</p>
+                
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={cn(
+                    'text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm',
+                    (caseData.action_plan?.comply_recommendation || caseData.comply_recommendation) === 'comply'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-rose-600 text-white'
+                  )}>
+                    {caseData.action_plan?.comply_recommendation || caseData.comply_recommendation || 'PENDING'}
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200/50" />
+                </div>
+                
+                {(caseData.action_plan?.compliance_summary || caseData.comply_reasoning) && (
+                  <p className="text-[15px] font-bold text-slate-800 mb-2 leading-snug">
+                    {caseData.action_plan?.compliance_summary || "Compliance Assessment"}
+                  </p>
+                )}
+                
+                <p className="text-xs text-slate-600 leading-relaxed italic border-l-2 border-slate-300 pl-3 bg-white/30 py-1 rounded-r">
+                  {caseData.action_plan?.reasoning || caseData.comply_reasoning || "Analyzing judgment text..."}
+                </p>
+
+                {caseData.action_plan?.source_citations?.compliance_summary && (
+                  <div className="mt-2.5 flex items-center gap-2 text-[9px] text-slate-400 border-t border-slate-100 pt-2">
+                    <span className="font-bold uppercase tracking-tighter shrink-0">Citation:</span>
+                    <span className="truncate italic">"{caseData.action_plan.source_citations.compliance_summary.quote}"</span>
+                    <span className="shrink-0 bg-white border border-slate-200 px-1 rounded font-bold text-slate-500">
+                      Pg {caseData.action_plan.source_citations.compliance_summary.page}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Checklist */}
-              <div className="space-y-2 mb-3">
-                {caseData.action_plan.checklist_items.map((item) => (
-                  <div key={item.id} className="flex gap-2.5 p-2.5 bg-slate-50 rounded border border-slate-100">
-                    <input type="checkbox" className="mt-0.5 accent-teal-600 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-800">{item.action}</p>
-                      <div className="flex gap-3 mt-1 flex-wrap">
-                        <span className="text-xs text-slate-400">{item.responsible}</span>
-                        <span className="text-xs text-slate-400">Due: {item.deadline}</span>
-                        <span className={cn(
-                          'text-xs font-medium px-1.5 rounded',
-                          item.priority === 'high' ? 'bg-red-100 text-red-700'
-                          : item.priority === 'medium' ? 'bg-amber-100 text-amber-700'
-                          : 'bg-slate-100 text-slate-600'
-                        )}>
-                          {item.priority}
-                        </span>
+              {caseData.action_plan?.checklist_items && caseData.action_plan.checklist_items.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Action Checklist</div>
+                  {caseData.action_plan.checklist_items.map((item) => (
+                    <div key={item.id} className="flex gap-2.5 p-2.5 bg-white border border-slate-100 rounded-lg shadow-sm">
+                      <input type="checkbox" className="mt-0.5 accent-teal-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] text-slate-800 font-medium leading-tight">{item.action}</p>
+                        <div className="flex gap-3 mt-1.5 flex-wrap items-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">{item.responsible}</span>
+                          <span className="text-[10px] text-slate-400">Due: {item.deadline}</span>
+                          <span className={cn(
+                            'text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-xs',
+                            item.priority === 'high' ? 'bg-rose-100 text-rose-700'
+                            : item.priority === 'medium' ? 'bg-amber-100 text-amber-700'
+                            : 'bg-slate-100 text-slate-600'
+                          )}>
+                            {item.priority}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* Risk */}
-              {caseData.action_plan.risk_if_missed && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded text-xs text-red-700">
-                  <strong>Risk if missed:</strong> {caseData.action_plan.risk_if_missed}
+              {caseData.action_plan?.risk_if_missed && (
+                <div className="p-3 bg-rose-50/30 border border-rose-100/50 rounded-lg text-xs text-rose-700 mt-2">
+                  <span className="font-bold uppercase tracking-widest text-[9px] mr-2">Contempt Risk:</span>
+                  {caseData.action_plan.risk_if_missed}
                   {caseData.action_plan.source_citations?.risk_if_missed && (
-                    <div className="mt-2 text-[10px] italic border-l-2 border-red-200 pl-2 text-red-600/80">
+                    <div className="mt-2 text-[10px] italic border-l-2 border-rose-200 pl-2 text-rose-600/80">
                       &ldquo;{caseData.action_plan.source_citations.risk_if_missed.quote}&rdquo;
-                      <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.risk_if_missed.page}</span>
+                      <span className="ml-1 font-bold opacity-60">— Pg {caseData.action_plan.source_citations.risk_if_missed.page}</span>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Context */}
-              {caseData.action_plan.context_insights && (
+              {caseData.action_plan?.context_insights && (
                 <div className="p-3 bg-slate-50 rounded text-xs text-slate-600 mt-2">
                   <strong>Context:</strong> {caseData.action_plan.context_insights}
                 </div>
               )}
 
               {/* Consideration for Appeal */}
-              {caseData.action_plan.consideration_for_appeal && (
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded text-xs text-amber-800 mt-2">
-                  <strong>Consideration for Appeal:</strong> {caseData.action_plan.consideration_for_appeal}
+              {caseData.action_plan?.consideration_for_appeal && (
+                <div className="p-4 bg-rose-50/50 border border-rose-100 rounded-xl text-xs text-slate-700 mt-4 relative overflow-hidden shadow-sm">
+                   <div className="absolute top-0 right-0 p-1 opacity-[0.04]">
+                      <div className="text-5xl font-black uppercase -rotate-12 text-rose-900">APPEAL</div>
+                   </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] font-black bg-rose-200/50 text-rose-700 px-2 py-1 rounded-md uppercase tracking-widest border border-rose-200">Appeal Assessment</span>
+                  </div>
+                  <p className="font-bold text-slate-800 leading-relaxed mb-3 text-[13px]">
+                    {caseData.action_plan.consideration_for_appeal}
+                  </p>
+                  
                   {caseData.action_plan.source_citations?.consideration_for_appeal && (
-                    <div className="mt-2 text-[10px] italic border-l-2 border-amber-200 pl-2 text-amber-700/80">
+                    <div className="mt-2 text-[11px] italic border-l-3 border-rose-300 pl-3 py-1.5 bg-white/40 rounded-r text-rose-900/80">
                       &ldquo;{caseData.action_plan.source_citations.consideration_for_appeal.quote}&rdquo;
-                      <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.consideration_for_appeal.page}</span>
+                      <div className="mt-2 flex items-center gap-1.5 not-italic font-black text-[9px] text-rose-500 uppercase tracking-widest">
+                         <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                         Source: Page {caseData.action_plan.source_citations.consideration_for_appeal.page}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Nature of Action */}
-              {caseData.action_plan.nature_of_action && Object.keys(caseData.action_plan.nature_of_action).length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nature of Action</div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {Object.entries(caseData.action_plan.nature_of_action).map(([key, value]) => (
-                      <div key={key} className="p-2.5 bg-white border border-slate-100 rounded shadow-sm">
-                        <div className="text-[10px] font-bold text-teal-700 uppercase tracking-tight mb-0.5">{key}</div>
-                        <p className="text-xs text-slate-600 leading-relaxed">{value}</p>
-                        {key === 'administrative' && caseData.action_plan.source_citations?.nature_of_action && (
-                          <div className="mt-1.5 text-[9px] italic border-l border-slate-200 pl-1.5 text-slate-400 leading-tight">
-                            &ldquo;{caseData.action_plan.source_citations.nature_of_action.quote}&rdquo;
-                            <span className="ml-1 font-bold">— Pg {caseData.action_plan.source_citations.nature_of_action.page}</span>
+              {caseData.action_plan?.nature_of_action && Object.keys(caseData.action_plan.nature_of_action).length > 0 && (
+                <div className="mt-5 space-y-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                    Nature of Action & Evidence
+                    <div className="h-px flex-1 bg-slate-100" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    {Object.entries(caseData.action_plan.nature_of_action).map(([key, value]) => {
+                      const citation = caseData.action_plan?.source_citations?.[key === 'administrative' ? 'nature_of_action' : key];
+                      return (
+                        <div key={key} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-lg transition-all group relative border-l-4 border-l-indigo-500">
+                          <div className="flex justify-between items-center mb-2.5">
+                            <div className="text-[10px] font-black text-indigo-700 uppercase tracking-widest px-2 py-1 bg-indigo-50 rounded-md border border-indigo-100">
+                              {key}
+                            </div>
+                            {citation && (
+                               <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200 shadow-xs">
+                                 Page {citation.page}
+                               </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <p className="text-[14px] font-bold text-slate-800 leading-snug mb-3">{value}</p>
+                          
+                          {citation && (
+                            <div className="text-[11px] italic text-slate-500 border-l-2 border-indigo-100 pl-3 py-1 bg-slate-50/50 rounded-r leading-relaxed">
+                              &ldquo;{citation.quote}&rdquo;
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -432,8 +511,8 @@ export function VerifyCard({ caseData, onVerified }: VerifyCardProps) {
                 {Object.entries(caseData.action_plan.source_citations).map(([key, cite]) => (
                   <div key={key} className="text-[10px] text-slate-500 leading-normal">
                     <span className="font-bold text-slate-400 uppercase mr-1">{key.replace(/_/g, ' ')}:</span>
-                    <span className="italic">&ldquo;{cite.quote}&rdquo;</span>
-                    <span className="ml-1.5 text-teal-600 font-bold bg-teal-50 px-1 rounded">Page {cite.page}</span>
+                    <span className="italic">&ldquo;{(cite as any).quote}&rdquo;</span>
+                    <span className="ml-1.5 text-teal-600 font-bold bg-teal-50 px-1 rounded">Page {(cite as any).page}</span>
                   </div>
                 ))}
               </div>

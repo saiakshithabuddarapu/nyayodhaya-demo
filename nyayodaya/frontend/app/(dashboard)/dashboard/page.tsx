@@ -10,7 +10,12 @@ async function getDashboardData() {
   const [allCasesRes, verifiedTodayRes] = await Promise.all([
     supabase
       .from('cases')
-      .select('*, respondent_department:departments(id, name, code), action_plans(*)')
+      .select(`
+        id, case_number, court, order_date, status, claimants, respondents, 
+        key_directives, absolute_deadline, comply_recommendation, contempt_risk, 
+        created_at, updated_at,
+        respondent_department:departments(id, name, code)
+      `)
       .order('created_at', { ascending: false }),
     supabase
       .from('cases')

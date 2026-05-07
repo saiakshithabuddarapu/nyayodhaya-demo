@@ -62,6 +62,19 @@ export function PipelineProgress({ jobId, onComplete, onError }: PipelineProgres
           </span>
           <span className="text-sm font-bold text-teal-700">{progress}%</span>
         </div>
+        
+        {status !== 'complete' && status !== 'failed' && (
+          <div className="mb-3 p-2.5 bg-amber-50 border border-amber-100 rounded-md flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-500">
+            <div className="mt-0.5 text-amber-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-[11px] font-medium text-amber-800 leading-tight">
+              <strong>Processing in progress:</strong> Please wait while the AI pipeline analyzes the document. This may take 30-60 seconds...
+            </p>
+          </div>
+        )}
         <Progress
           value={progress}
           variant={status === 'failed' ? 'destructive' : 'default'}

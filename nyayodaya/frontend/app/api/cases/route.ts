@@ -6,18 +6,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
     const department_id = searchParams.get('department_id')
+    const summary = searchParams.get('summary') === 'true'
     const limit = parseInt(searchParams.get('limit') || '50', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     const supabase = await createServiceClient()
 
+    // 1. Build Query (Selective fetch for speed)
     let query = supabase
       .from('cases')
       .select(
-        `
-        *,
-        respondent_department:departments(id, name, code),
-        action_plans(*)
+        summary ? `
+          id, case_number, court, order_date, status, claimants, respondents, key_directives, absolute_deadline, comply_recommendation, contempt_risk, created_at,
+          respondent_department:departments(id, name, code)
+        ` : `
+          *,
+          respondent_department:departments(id, name, code),
+          action_plans(*)
         `,
         { count: 'exact' }
       )
@@ -41,12 +46,28 @@ export async function GET(req: NextRequest) {
 
     // Reshape confidence scores and action_plan
     const shaped = (cases || []).map((c) => {
+      // If summary mode, return early with minimal processing
+      if (summary) {
+        return {
+          ...c,
+          claimants: c.claimants || [],
+          respondents: c.respondents || [],
+          action_plan: null,
+          confidence_scores: null,
+          source_paragraphs: null,
+        }
+      }
+
       const actionPlan = c.action_plans?.[0] || null
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { action_plans, ...rest } = c
       return {
         ...rest,
         // Pull missing fields from extraction_raw
+        // Map new party lists with fallbacks
+        claimants: c.claimants && c.claimants.length > 0 ? c.claimants : (c.extraction_raw?.claimants ?? []),
+        respondents: c.respondents && c.respondents.length > 0 ? c.respondents : (c.extraction_raw?.respondents ?? []),
+        
         petitioners: c.petitioners && c.petitioners.length > 0 ? c.petitioners : (c.extraction_raw?.petitioners ?? []),
         appointment_year: c.appointment_year || c.extraction_raw?.appointment_year || null,
         connected_matters: c.connected_matters || c.extraction_raw?.connected_matters || null,
@@ -71,6 +92,7 @@ export async function GET(req: NextRequest) {
           ? {
               checklist_items: actionPlan.checklist_items || [],
               context_insights: actionPlan.context_insights || '',
+              compliance_summary: actionPlan.compliance_summary || '',
               comply_recommendation: rest.comply_recommendation || 'comply',
               reasoning: rest.comply_reasoning || '',
               risk_if_missed: actionPlan.risk_if_missed || '',

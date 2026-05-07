@@ -48,6 +48,7 @@ export interface ActionPlanItem {
 export interface ActionPlan {
   checklist_items: ActionPlanItem[]
   context_insights: string
+  compliance_summary: string
   comply_recommendation: ComplyRecommendation
   reasoning: string
   risk_if_missed: string
@@ -64,6 +65,8 @@ export interface Case {
   judgment_pdf_url?: string
   respondent_department?: Department
   respondent_department_id?: string
+  respondents?: string[]
+  claimants?: string[]
   connected_matters?: string
   petitioners?: string[]
   appointment_year?: string
