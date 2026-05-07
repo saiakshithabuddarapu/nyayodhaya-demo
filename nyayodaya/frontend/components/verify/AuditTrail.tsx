@@ -50,9 +50,9 @@ export function AuditTrail({ caseId }: AuditTrailProps) {
                 })}
               </span>
             </div>
-            {log.details?.rejection_reason && (
+            {(log.details as Record<string, unknown>)?.rejection_reason && (
               <p className="text-slate-500 mt-0.5 italic">
-                Reason: {String(log.details.rejection_reason)}
+                Reason: {String((log.details as Record<string, unknown>).rejection_reason)}
               </p>
             )}
           </div>
