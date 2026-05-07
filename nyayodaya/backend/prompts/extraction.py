@@ -11,7 +11,9 @@ Return ONLY a valid JSON object. No preamble, no explanation, no markdown code b
   "connected_matters": "list any other WP numbers mentioned as connected or heard together, else null",
   "court": "full court name and bench",
   "order_date": "YYYY-MM-DD",
-  "respondent_department": "exact department name from judgment (e.g. Department of Social Welfare)",
+  "respondent_department": "Primary government department if any, else primary respondent name",
+  "respondents": ["List all respondent parties with roles if mentioned (e.g., 'United India Insurance Co. (Insurer)')"],
+  "claimants": ["List all petitioner/claimant parties with roles if mentioned (e.g., 'Smt. Kamalamma (Lorry Owner)')"],
   "petitioners": ["List the specific names of the main petitioners mentioned"],
   "appointment_year": "The year the petitioners were appointed (if mentioned, e.g., 2005)",
   "key_directives": [
@@ -27,7 +29,7 @@ Return ONLY a valid JSON object. No preamble, no explanation, no markdown code b
   "source_paragraphs": {{
     "case_number": "exact text from judgment where case number and connected matters appear",
     "case_number_page": "page number where case number appears",
-    "department": "exact text naming the respondent department",
+    "department": "exact text naming the respondent department or primary respondent",
     "department_page": "page number where department name appears",
     "directive": "exact operative order paragraph",
     "directive_page": "page number where directive appears",

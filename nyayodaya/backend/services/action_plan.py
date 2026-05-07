@@ -106,6 +106,7 @@ async def generate_action_plan(
         action_plan = ActionPlan(
             checklist_items=checklist_items,
             context_insights=data.get("context_insights", ""),
+            compliance_summary=data.get("compliance_summary", ""),
             comply_recommendation=data.get("comply_recommendation", "comply"),
             reasoning=data.get("reasoning", ""),
             risk_if_missed=data.get("risk_if_missed", ""),

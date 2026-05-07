@@ -167,6 +167,8 @@ async def save_case_to_db(
         "order_date": extraction.get("order_date") or None,
         "judgment_pdf_url": file_url,
         "respondent_department_id": dept_id,
+        "claimants": extraction.get("claimants", []),
+        "respondents": extraction.get("respondents", []),
         "key_directives": extraction.get("key_directives", []),
         "absolute_deadline": absolute_deadline,
         "relative_deadline_text": extraction.get("relative_deadline_text", ""),
@@ -201,8 +203,11 @@ async def save_case_to_db(
         "case_id": case_id,
         "checklist_items": action_plan.get("checklist_items", []),
         "context_insights": action_plan.get("context_insights", ""),
+        "compliance_summary": action_plan.get("compliance_summary", ""),
+        "risk_if_missed": action_plan.get("risk_if_missed", ""),
         "nature_of_action": action_plan.get("nature_of_action", {}),
         "consideration_for_appeal": action_plan.get("consideration_for_appeal", ""),
+        "source_citations": action_plan.get("source_citations", {}),
         "similar_cases": [],
     }
 

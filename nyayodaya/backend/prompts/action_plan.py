@@ -20,6 +20,7 @@ Return ONLY valid JSON. No preamble, no markdown.
     "communication": "Specific communication steps (e.g., Serve order via registered post)"
   }},
   "consideration_for_appeal": "Detailed assessment of whether an appeal is viable and on what grounds, vs why compliance is the standard path.",
+  "compliance_summary": "A 1-sentence executive summary of the compliance strategy.",
   "context_insights": "2-3 sentences of strategic context — what this case means, any political sensitivity, similar past precedents",
   "comply_recommendation": "comply or appeal",
   "reasoning": "detailed paragraph explaining comply vs appeal decision",
@@ -27,7 +28,8 @@ Return ONLY valid JSON. No preamble, no markdown.
   "source_citations": {{
     "nature_of_action": {{ "quote": "...", "page": 1 }},
     "consideration_for_appeal": {{ "quote": "...", "page": 1 }},
-    "risk_if_missed": {{ "quote": "...", "page": 1 }}
+    "risk_if_missed": {{ "quote": "...", "page": 1 }},
+    "compliance_summary": {{ "quote": "...", "page": 1 }}
   }}
 }}
 

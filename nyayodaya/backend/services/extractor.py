@@ -103,6 +103,12 @@ async def extract_from_judgment(
         raw_confidence = data.pop("confidence_indicators", {}) or {}
         raw_source = data.pop("source_paragraphs", {}) or {}
 
+        # Ensure claimants and respondents are lists
+        if "claimants" not in data or not isinstance(data["claimants"], list):
+            data["claimants"] = []
+        if "respondents" not in data or not isinstance(data["respondents"], list):
+            data["respondents"] = []
+
         extraction = ExtractionResult(
             **{k: v for k, v in data.items() if k not in ("confidence_indicators", "source_paragraphs")},
             source_paragraphs=SourceParagraphs(**raw_source) if raw_source else None,

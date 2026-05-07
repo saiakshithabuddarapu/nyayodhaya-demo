@@ -65,7 +65,9 @@ class ExtractionResult(BaseModel):
     case_number: str
     court: str
     order_date: str
-    respondent_department: str
+    respondent_department: Optional[str] = None
+    respondents: list[str] = []
+    claimants: list[str] = []
     connected_matters: Optional[str] = None
     petitioners: list[str] = []
     appointment_year: Optional[str] = None
@@ -95,6 +97,7 @@ class ActionPlanItem(BaseModel):
 class ActionPlan(BaseModel):
     checklist_items: list[ActionPlanItem]
     context_insights: str
+    compliance_summary: Optional[str] = None
     comply_recommendation: str
     reasoning: str
     risk_if_missed: str
