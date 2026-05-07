@@ -16,6 +16,9 @@ build/
 # Misc
 .DS_Store
 *.pem
+*.log
+*.tmp
+*.temp
 
 # Debug
 npm-debug.log*
@@ -24,8 +27,13 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # Local env files
-.env*.local
 .env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
 
 # Vercel
 .vercel
@@ -42,12 +50,20 @@ __pycache__/
 venv/
 ENV/
 env/
-.env
 .pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+.cache/
 
-# User-specific
+# IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Project Specific
 .gemini/
 scratch/
-sample_data/
+nyayodaya/frontend/.next/
+nyayodaya/backend/__pycache__/
