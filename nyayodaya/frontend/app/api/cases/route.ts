@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Reshape confidence scores and action_plan
-    const shaped = (cases || []).map((c) => {
+    const shaped = (cases || []).map((c: any) => {
       // If summary mode, return early with minimal processing
       if (summary) {
         return {
