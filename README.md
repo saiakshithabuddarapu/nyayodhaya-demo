@@ -42,7 +42,7 @@ npm run dev
 
 ## 🌐 Live Application
 The system is deployed and accessible for demonstration at:  
-**[Nyayodaya Live Dashboard](https://nyayodhaya-frontend-production.up.railway.app/login)**
+**[Nyayodaya Live Dashboard](https://nyayodaya-demo-prod.up.railway.app/login)**
 
 **Demo Access Credentials:**
 *   **Email:** `test@example.com`
