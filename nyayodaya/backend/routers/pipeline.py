@@ -1,7 +1,8 @@
 import logging
 from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from agents.extraction_pipeline import job_store, job_store_lock, run_full_pipeline
+from agents.extraction_pipeline import job_store, job_store_lock
+from agents.swarm import run_swarm_pipeline
 from models.schemas import ProcessJudgmentResponse
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ async def process_judgment(
             "error": None,
         }
 
-    background_tasks.add_task(run_full_pipeline, job_id, file_id, file_url)
+    background_tasks.add_task(run_swarm_pipeline, job_id, file_id, file_url)
 
     logger.info(f"Queued job {job_id} for file_id: {file_id}")
     return ProcessJudgmentResponse(job_id=job_id, status="queued")
